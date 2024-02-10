@@ -1,0 +1,38 @@
+{
+  "name": "@nestjs!/graphql-filter",
+  "version": "1.0.0",
+  "description": "GraphQL (TypeScript) module for Nest framework (node.js) that allow generate Filter Input Types based on decorators over entities and include TypeORM Pipe Transforms to generate Where and Order inputs for entities repositories.",
+  "author": "Giuliano Marinelli",
+  "license": "MIT",
+  "main": "dist/index",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rimraf dist && tsc",
+    "prepublish": "npm run build"
+  },
+  "dependencies": {
+    "rxjs": "^7.8.1",
+    "ts-morph": "^20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.3.1",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.1.3"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=10.0.0",
+    "@nestjs/core": ">=10.0.0",
+    "@nestjs/graphql": ">=12.0.11",
+    "class-validator": ">=0.14.1",
+    "graphql": ">=16.8.1",
+    "typeorm": ">=0.3.20"
+  },
+  "homepage": "https://github.com/giuliano-marinelli/nestjs-graphql-filter#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/giuliano-marinelli/nestjs-graphql-filter"
+  }
+}
