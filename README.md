@@ -313,7 +313,7 @@ export class UsersResolver {
     @Args('pagination', { nullable: true }) pagination: PaginationInput,
     @SelectionSet() selection: SelectionInput
   ) {
-    return await this.usersService.findAll({ where, order, pagination });
+    return await this.usersService.findAll({ where, order, pagination, selection });
   }
 }
 ```
@@ -410,13 +410,15 @@ input UserWhereInput {
   profile: ProfileWhereInput
   role: StringWhereInput
   username: StringWhereInput
+  sessions: SessionWhereInput
 }
 
 input UserOrderInput {
   email: OrderDirection
-  profile: OrderDirection
+  profile: ProfileOrderInput
   role: OrderDirection
   username: OrderDirection
+  sessions: SessionOrderInput
 }
 ```
 
