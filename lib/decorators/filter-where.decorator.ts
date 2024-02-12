@@ -16,7 +16,7 @@ export function FilterWhereType<T>(classRef: Type<T>): ClassDecorator {
     LazyMetadataStorage.store(() => TypeMetadataStorage.addInputTypeMetadata(metadata));
     addClassTypeMetadata(target, ClassType.INPUT);
     FilterFields[classRef.name]?.forEach((field) => {
-      addFieldMetadata(field.typeFunc, field.options, target.prototype, field.propertyKey);
+      addFieldMetadata(field.whereTypeFunc, field.options, target.prototype, field.propertyKey);
     });
   };
 }

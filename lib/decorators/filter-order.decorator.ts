@@ -3,7 +3,6 @@ import { TypeMetadataStorage, addFieldMetadata } from '@nestjs/graphql';
 import { ClassType } from '@nestjs/graphql/dist/enums/class-type.enum';
 import { LazyMetadataStorage } from '@nestjs/graphql/dist/schema-builder/storages/lazy-metadata.storage';
 import { addClassTypeMetadata } from '@nestjs/graphql/dist/utils/add-class-type-metadata.util';
-import { OrderDirection } from '../inputs/order.input';
 import { FilterFields } from './metadata';
 
 export function FilterOrderType<T>(classRef: Type<T>): ClassDecorator {
@@ -17,7 +16,7 @@ export function FilterOrderType<T>(classRef: Type<T>): ClassDecorator {
     LazyMetadataStorage.store(() => TypeMetadataStorage.addInputTypeMetadata(metadata));
     addClassTypeMetadata(target, ClassType.INPUT);
     FilterFields[classRef.name]?.forEach((field) => {
-      addFieldMetadata(() => OrderDirection, field.options, target.prototype, field.propertyKey);
+      addFieldMetadata(field.orderTypeFunc, field.options, target.prototype, field.propertyKey);
     });
   };
 }

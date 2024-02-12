@@ -2,6 +2,7 @@ import { FieldOptions, GqlTypeReference, ReturnTypeFunc, ReturnTypeFuncValue } f
 
 import { BooleanWhereInput, DateTimeWhereInput, IntWhereInput, StringWhereInput } from '../inputs/where.input';
 import { FilterFields } from './metadata';
+import { OrderDirection } from '../inputs/order.input';
 
 type FieldOptionsExtractor<T> = T extends [GqlTypeReference<infer P>]
   ? FieldOptions<P[]>
@@ -12,40 +13,49 @@ type FieldOptionsExtractor<T> = T extends [GqlTypeReference<infer P>]
 export function FilterField(): PropertyDecorator;
 export function FilterField<T extends ReturnTypeFuncValue>(options: FieldOptionsExtractor<T>): PropertyDecorator;
 export function FilterField<T extends ReturnTypeFuncValue>(
-  returnTypeFunction?: ReturnTypeFunc<T>,
+  whereReturnTypeFunction?: ReturnTypeFunc<T>,
+  orderReturnTypeFunction?: ReturnTypeFunc<T>,
   options?: FieldOptionsExtractor<T>
 ): PropertyDecorator;
 export function FilterField<T extends ReturnTypeFuncValue>(
-  typeOrOptions?: ReturnTypeFunc<T> | FieldOptionsExtractor<T>,
+  whereTypeOrOrderTypeOrOptions?: ReturnTypeFunc<T> | FieldOptionsExtractor<T>,
+  orderTypeOrOptions?: ReturnTypeFunc<T> | FieldOptionsExtractor<T>,
   fieldOptions?: FieldOptionsExtractor<T>
 ): PropertyDecorator {
   return (target, propertyKey) => {
-    let [typeFunc, options] =
-      typeof typeOrOptions === 'function' ? [typeOrOptions, fieldOptions] : [undefined, typeOrOptions as any];
+    let [whereTypeFunc, orderTypeFunc, options] =
+      typeof orderTypeOrOptions === 'function'
+        ? [whereTypeOrOrderTypeOrOptions, orderTypeOrOptions, fieldOptions]
+        : typeof whereTypeOrOrderTypeOrOptions === 'function'
+        ? [whereTypeOrOrderTypeOrOptions, undefined, orderTypeOrOptions as any]
+        : [undefined, undefined, whereTypeOrOrderTypeOrOptions as any];
 
     // get the type of the property for use if no type is provided
     const propertyType = Reflect.getMetadata('design:type', target, propertyKey).name;
-    if (!typeFunc) {
+    if (!whereTypeFunc) {
       switch (propertyType) {
         case 'Number':
-          typeFunc = () => IntWhereInput as T;
+          whereTypeFunc = () => IntWhereInput as T;
           break;
         case 'Boolean':
-          typeFunc = () => BooleanWhereInput as T;
+          whereTypeFunc = () => BooleanWhereInput as T;
           break;
         case 'Date':
-          typeFunc = () => DateTimeWhereInput as T;
+          whereTypeFunc = () => DateTimeWhereInput as T;
           break;
         case 'String':
         default:
-          typeFunc = () => StringWhereInput as T;
+          whereTypeFunc = () => StringWhereInput as T;
           break;
       }
+    }
+    if (!orderTypeFunc) {
+      orderTypeFunc = () => OrderDirection as T;
     }
 
     if (!options) options = { nullable: true };
 
     if (!FilterFields[target.constructor.name]) FilterFields[target.constructor.name] = [];
-    FilterFields[target.constructor.name].push({ typeFunc, options, propertyKey });
+    FilterFields[target.constructor.name].push({ whereTypeFunc, orderTypeFunc, options, propertyKey });
   };
 }

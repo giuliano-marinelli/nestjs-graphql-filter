@@ -1,7 +1,7 @@
 {
   "name": "@nestjs!/graphql-filter",
-  "version": "1.0.0",
-  "description": "GraphQL (TypeScript) module for Nest framework (node.js) that allow generate Filter Input Types based on decorators over entities and include TypeORM Pipe Transforms to generate Where and Order inputs for entities repositories.",
+  "version": "1.0.1",
+  "description": "GraphQL tools for Nest framework that gives a set of decorators and pipe transforms for make filtering, ordering, pagination and selection inputs easily for use with a ORM.",
   "author": "Giuliano Marinelli",
   "license": "MIT",
   "main": "dist/index",
