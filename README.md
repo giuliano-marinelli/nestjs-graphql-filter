@@ -37,7 +37,7 @@ $ npm install @nestjs!/graphql-filter
 - [Entities](#entities)
 - [Resolvers](#resolvers)
 - [Services](#services)
-- [SelectionSet](#selection-set)
+- [SelectionSet](#selectionset)
 
 [Schema](#schema)
 
