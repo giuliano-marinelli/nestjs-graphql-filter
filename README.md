@@ -37,12 +37,16 @@ $ npm install @nestjs!/graphql-filter
 - [Entities](#entities)
 - [Resolvers](#resolvers)
 - [Services](#services)
-- [SelectionSet](#selectionset)
-- [Owner Util](#owner-util)
 
 [Schema](#schema)
 
 [Query](#query)
+
+[Utils](#utils)
+
+- [SelectionSet](#selectionset)
+- [AuthUser](#authuser)
+- [Owner](#owner)
 
 [InputTypes Reference](#inputtypes-reference)
 
@@ -359,105 +363,6 @@ export class UsersService {
 }
 ```
 
-#### SelectionSet
-
-When using the `@SelectionSet` decorator you will get a `SelectionInput` object which is obtained by processing the GraphQL context info and organized for easily accessing the selection.
-
-From this object you have the next methods at disposition:
-
-`getAttributes()`: returns a string array with only the entity attributes selected, it means that relationships are not included. For example, for the query of the next section we get:
-
-```json
-["id", "username", "email", "role"]
-```
-
-`getFullAttributes()`: returns a string array with all the entity attributes selected and the relationships ones. For example, for the query of the next section we get:
-
-<!-- prettier-ignore -->
-```json
-[
-  "id", "username", "email", "role", "profile.name", "profile.bio", "profile.age", "profile.height", "sessions.id", "sessions.token", "sessions.device.client", "sessions.device.os", "sessions.device.ip"
-]
-```
-
-`getRelations()`: returns a string array with only the relations names that are selected. For example, for the query of the next section we get:
-
-```json
-["profile", "sessions"]
-```
-
-`getTypeORMRelations(include?)`: returns a object formatted for been used in TypeORM repository find relations parameter. Also some extra relations can be added using include parameter with a valid TypeORM relations object. For example, for the query of the next section we get:
-
-```typescript
-{
-    profile: true,
-    sessions: true
-}
-```
-
-#### Owner Util
-
-This util function permits modify the TypeORM FindOptionsWhere for adding checks of ownership with an authenticated user and defined roles. For example if we want to return only the sessions that are owned by the authenticated user:
-
-`sessions.resolver.ts`
-
-```typescript
-@Query(() => Session, { name: 'session', nullable: true })
-async findOne(
-  @Args('id', { type: () => GraphQLUUID }) id: string,
-  @SelectionSet() selection: SelectionInput,
-  @Context() context
-) {
-  return await this.sessionsService.findOne(id, selection, context?.req?.user);
-}
-
-@Query(() => [Session], { name: 'sessions', nullable: 'items' })
-async findAll(
-  @Args('where', { type: () => [SessionWhereInput], nullable: true }, TypeORMWhereTransform<Session>)
-  where: FindOptionsWhere<Session>,
-  @Args('order', { type: () => [SessionOrderInput], nullable: true }, TypeORMOrderTransform<Session>)
-  order: FindOptionsOrder<Session>,
-  @Args('pagination', { nullable: true }) pagination: PaginationInput,
-  @SelectionSet() selection: SelectionInput,
-  @Context() context
-) {
-  return await this.sessionsService.findAll(where, order, pagination, selection, context?.req?.user);
-}
-```
-
-**Note: you previously have to add _user_ to the context request with your own authentication guard.**
-
-`sessions.service.ts`
-
-```typescript
-async findOne(id: string, selection: SelectionInput, authUser: User) {
-  return await this.sessionsRepository.findOne({
-    relations: selection?.getTypeORMRelations(),
-    where: Owner({ id: id }, 'user.id', authUser, [Role.ADMIN])
-  });
-}
-
-async findAll(
-  where: FindOptionsWhere<Session>,
-  order: FindOptionsOrder<Session>,
-  pagination: PaginationInput,
-  selection: SelectionInput,
-  authUser: User
-) {
-  return await this.sessionsRepository.find({
-    relations: selection?.getTypeORMRelations(),
-    where: Owner(where, 'user.id', authUser, [Role.ADMIN]),
-    order: order,
-    skip: pagination ? (pagination.page - 1) * pagination.count : null,
-    take: pagination ? pagination.count : null
-  });
-}
-```
-
-Here users with role "admin" can bypass the ownership check so the where option is not modified for them. You can put all the roles you want to bypass in that parameter.
-
-There's also a fifth parameter that allow to modify the acceded authUser _idField_ and _roleField_ to be different as default ones (_'id'_ and _'role'_).
-
 ### Schema
 
 ---
@@ -590,6 +495,123 @@ query Users($where: [UserWhereInput!], $order: [UserOrderInput!], $pagination: P
 Here we can note that the "where" variable can be an array or a object, meaning that it's an OR clause or AND clause respectively.
 
 For "order" variable something similar happen, we can define the variable as an array or object, but if it's a object we can't ensure the priority of the ordering parameters.
+
+### Utils
+
+#### SelectionSet
+
+When using the `@SelectionSet` decorator you will get a `SelectionInput` object which is obtained by processing the GraphQL context info and organized for easily accessing the selection.
+
+From this object you have the next methods at disposition:
+
+`getAttributes()`: returns a string array with only the entity attributes selected, it means that relationships are not included. For example, for the query of the next section we get:
+
+```json
+["id", "username", "email", "role"]
+```
+
+`getFullAttributes()`: returns a string array with all the entity attributes selected and the relationships ones. For example, for the query of the next section we get:
+
+<!-- prettier-ignore -->
+```json
+[
+  "id", "username", "email", "role", "profile.name", "profile.bio", "profile.age", "profile.height", "sessions.id", "sessions.token", "sessions.device.client", "sessions.device.os", "sessions.device.ip"
+]
+```
+
+`getRelations()`: returns a string array with only the relations names that are selected. For example, for the query of the next section we get:
+
+```json
+["profile", "sessions"]
+```
+
+`getTypeORMRelations(include?)`: returns a object formatted for been used in TypeORM repository find relations parameter. Also some extra relations can be added using include parameter with a valid TypeORM relations object. For example, for the query of the next section we get:
+
+```typescript
+{
+    profile: true,
+    sessions: true
+}
+```
+
+#### AuthUser
+
+When using the `@AuthUser` decorator you will get a object which is obtained from the GraphQL context request. You can also send a string parameter with the name you use for store the authenticated user on the request. For example:
+
+`sessions.resolver.ts`
+
+```typescript
+@Query(() => [Session], { name: 'sessions', nullable: 'items' })
+async findAll(
+  ...,
+  @AuthUser('user') authUser: User
+) {
+  return await this.sessionsService.findAll(..., authUser);
+}
+```
+
+#### Owner
+
+This util function permits modify the TypeORM FindOptionsWhere for adding checks of ownership with an authenticated user and defined roles. For example if we want to return only the sessions that are owned by the authenticated user:
+
+`sessions.resolver.ts`
+
+```typescript
+@Query(() => Session, { name: 'session', nullable: true })
+async findOne(
+  @Args('id', { type: () => GraphQLUUID }) id: string,
+  @SelectionSet() selection: SelectionInput,
+  @AuthUser() authUser: User
+) {
+  return await this.sessionsService.findOne(id, selection, authUser);
+}
+
+@Query(() => [Session], { name: 'sessions', nullable: 'items' })
+async findAll(
+  @Args('where', { type: () => [SessionWhereInput], nullable: true }, TypeORMWhereTransform<Session>)
+  where: FindOptionsWhere<Session>,
+  @Args('order', { type: () => [SessionOrderInput], nullable: true }, TypeORMOrderTransform<Session>)
+  order: FindOptionsOrder<Session>,
+  @Args('pagination', { nullable: true }) pagination: PaginationInput,
+  @SelectionSet() selection: SelectionInput,
+  @AuthUser() authUser: User
+) {
+  return await this.sessionsService.findAll(where, order, pagination, selection, authUser);
+}
+```
+
+**Note: you previously have to add _user_ to the context request with your own authentication guard.**
+
+`sessions.service.ts`
+
+```typescript
+async findOne(id: string, selection: SelectionInput, authUser: User) {
+  return await this.sessionsRepository.findOne({
+    relations: selection?.getTypeORMRelations(),
+    where: Owner({ id: id }, 'user.id', authUser, [Role.ADMIN])
+  });
+}
+
+async findAll(
+  where: FindOptionsWhere<Session>,
+  order: FindOptionsOrder<Session>,
+  pagination: PaginationInput,
+  selection: SelectionInput,
+  authUser: User
+) {
+  return await this.sessionsRepository.find({
+    relations: selection?.getTypeORMRelations(),
+    where: Owner(where, 'user.id', authUser, [Role.ADMIN]),
+    order: order,
+    skip: pagination ? (pagination.page - 1) * pagination.count : null,
+    take: pagination ? pagination.count : null
+  });
+}
+```
+
+Here users with role "admin" can bypass the ownership check so the where option is not modified for them. You can put all the roles you want to bypass in that parameter.
+
+There's also a fifth parameter that allow to modify the acceded authUser _idField_ and _roleField_ to be different as default ones (_'id'_ and _'role'_).
 
 ### InputTypes Reference
 
