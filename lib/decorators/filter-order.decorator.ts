@@ -5,6 +5,13 @@ import { LazyMetadataStorage } from '@nestjs/graphql/dist/schema-builder/storage
 import { addClassTypeMetadata } from '@nestjs/graphql/dist/utils/add-class-type-metadata.util';
 import { FilterFields } from './metadata';
 
+/**
+ * Decorator for generate a filter order input type for a class.
+ *
+ * @template T - The type of the class.
+ * @param {Type<T>} classRef - The reference to the class.
+ * @returns {ClassDecorator} - The class decorator.
+ */
 export function FilterOrderType<T>(classRef: Type<T>): ClassDecorator {
   return (target) => {
     const metadata = {

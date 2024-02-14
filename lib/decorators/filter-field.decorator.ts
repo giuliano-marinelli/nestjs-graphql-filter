@@ -10,6 +10,11 @@ type FieldOptionsExtractor<T> = T extends [GqlTypeReference<infer P>]
   ? FieldOptions<P>
   : never;
 
+/**
+ * Decorator that is used to add a field for the filter input type generation in GraphQL.
+ *
+ * @returns {PropertyDecorator} The decorator function.
+ */
 export function FilterField(): PropertyDecorator;
 export function FilterField<T extends ReturnTypeFuncValue>(options: FieldOptionsExtractor<T>): PropertyDecorator;
 export function FilterField<T extends ReturnTypeFuncValue>(

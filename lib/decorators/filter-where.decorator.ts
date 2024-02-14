@@ -5,6 +5,13 @@ import { LazyMetadataStorage } from '@nestjs/graphql/dist/schema-builder/storage
 import { addClassTypeMetadata } from '@nestjs/graphql/dist/utils/add-class-type-metadata.util';
 import { FilterFields } from './metadata';
 
+/**
+ * Decorator for generate a filter where input type for a class.
+ *
+ * @template T - The class type.
+ * @param {Type<T>} classRef - The reference to the class.
+ * @returns {ClassDecorator} - The decorator function.
+ */
 export function FilterWhereType<T>(classRef: Type<T>): ClassDecorator {
   return (target) => {
     const metadata = {

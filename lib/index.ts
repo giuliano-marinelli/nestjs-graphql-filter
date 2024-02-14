@@ -18,6 +18,8 @@ import { TypeORMOrderTransform } from './pipes/typeorm-order-transform.pipe';
 
 import { SelectionInput } from './types/selection-set';
 
+import { Owner } from './utils/ownership';
+
 // export decorators
 export { FilterField, FilterWhereType, FilterOrderType, SelectionSet };
 
@@ -37,3 +39,6 @@ export { TypeORMWhereTransform, TypeORMOrderTransform };
 
 // export types
 export { SelectionInput };
+
+// export utils
+export { Owner };

@@ -17,6 +17,10 @@ import {
   Or
 } from 'typeorm';
 
+/**
+ * Transforms the input value into a FindOptionsWhere object for TypeORM.
+ * @template T - The type of the input value.
+ */
 export class TypeORMWhereTransform<T> implements PipeTransform {
   transform(value: T) {
     return transformTypeORMWhere(value) as FindOptionsWhere<T>;

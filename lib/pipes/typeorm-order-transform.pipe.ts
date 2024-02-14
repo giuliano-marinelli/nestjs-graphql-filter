@@ -1,6 +1,10 @@
 import { PipeTransform } from '@nestjs/common';
 import { FindOptionsOrder } from 'typeorm';
 
+/**
+ * Transforms the input value into a FindOptionsOrder object of TypeORM.
+ * @template T - The type of the input value.
+ */
 export class TypeORMOrderTransform<T> implements PipeTransform {
   transform(value: T) {
     return transformTypeORMOrder(value) as FindOptionsOrder<T>;

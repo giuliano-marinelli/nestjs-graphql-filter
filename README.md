@@ -38,6 +38,7 @@ $ npm install @nestjs!/graphql-filter
 - [Resolvers](#resolvers)
 - [Services](#services)
 - [SelectionSet](#selectionset)
+- [Owner Util](#owner-util)
 
 [Schema](#schema)
 
@@ -313,7 +314,7 @@ export class UsersResolver {
     @Args('pagination', { nullable: true }) pagination: PaginationInput,
     @SelectionSet() selection: SelectionInput
   ) {
-    return await this.usersService.findAll({ where, order, pagination, selection });
+    return await this.usersService.findAll( where, order, pagination, selection );
   }
 }
 ```
@@ -341,18 +342,18 @@ export class UsersService {
 
   ...
 
-  async findAll(options: {
-    where?: FindOptionsWhere<User>;
-    order?: FindOptionsOrder<User>;
-    pagination?: PaginationInput;
-    selection?: SelectionInput;
-  }) {
+  async findAll(
+    where: FindOptionsWhere<User>,
+    order: FindOptionsOrder<User>,
+    pagination: PaginationInput,
+    selection: SelectionInput
+  ) {
     return await this.usersRepository.find({
-      relations: options.selection?.getTypeORMRelations(),
-      where: options.where,
-      order: options.order,
-      skip: options.pagination ? (options.pagination.page - 1) * options.pagination?.count : null,
-      take: options.pagination ? options.pagination.count : null
+      relations: selection?.getTypeORMRelations(),
+      where: where,
+      order: order,
+      skip: pagination ? (pagination.page - 1) * pagination?.count : null,
+      take: pagination ? pagination.count : null
     });
   }
 }
@@ -385,7 +386,7 @@ From this object you have the next methods at disposition:
 ["profile", "sessions"]
 ```
 
-`getTypeORMRelations()`: returns a object formatted for been used in TypeORM repository find relations parameter. For example, for the query of the next section we get:
+`getTypeORMRelations(include?)`: returns a object formatted for been used in TypeORM repository find relations parameter. Also some extra relations can be added using include parameter with a valid TypeORM relations object. For example, for the query of the next section we get:
 
 ```typescript
 {
@@ -393,6 +394,69 @@ From this object you have the next methods at disposition:
     sessions: true
 }
 ```
+
+#### Owner Util
+
+This util function permits modify the TypeORM FindOptionsWhere for adding checks of ownership with an authenticated user and defined roles. For example if we want to return only the sessions that are owned by the authenticated user:
+
+`sessions.resolver.ts`
+
+```typescript
+@Query(() => Session, { name: 'session', nullable: true })
+async findOne(
+  @Args('id', { type: () => GraphQLUUID }) id: string,
+  @SelectionSet() selection: SelectionInput,
+  @Context() context
+) {
+  return await this.sessionsService.findOne(id, selection, context?.req?.user);
+}
+
+@Query(() => [Session], { name: 'sessions', nullable: 'items' })
+async findAll(
+  @Args('where', { type: () => [SessionWhereInput], nullable: true }, TypeORMWhereTransform<Session>)
+  where: FindOptionsWhere<Session>,
+  @Args('order', { type: () => [SessionOrderInput], nullable: true }, TypeORMOrderTransform<Session>)
+  order: FindOptionsOrder<Session>,
+  @Args('pagination', { nullable: true }) pagination: PaginationInput,
+  @SelectionSet() selection: SelectionInput,
+  @Context() context
+) {
+  return await this.sessionsService.findAll(where, order, pagination, selection, context?.req?.user);
+}
+```
+
+**Note: you previously have to add _user_ to the context request with your own authentication guard.**
+
+`sessions.service.ts`
+
+```typescript
+async findOne(id: string, selection: SelectionInput, authUser: User) {
+  return await this.sessionsRepository.findOne({
+    relations: selection?.getTypeORMRelations(),
+    where: Owner({ id: id }, 'user.id', authUser, [Role.ADMIN])
+  });
+}
+
+async findAll(
+  where: FindOptionsWhere<Session>,
+  order: FindOptionsOrder<Session>,
+  pagination: PaginationInput,
+  selection: SelectionInput,
+  authUser: User
+) {
+  return await this.sessionsRepository.find({
+    relations: selection?.getTypeORMRelations(),
+    where: Owner(where, 'user.id', authUser, [Role.ADMIN]),
+    order: order,
+    skip: pagination ? (pagination.page - 1) * pagination.count : null,
+    take: pagination ? pagination.count : null
+  });
+}
+```
+
+Here users with role "admin" can bypass the ownership check so the where option is not modified for them. You can put all the roles you want to bypass in that parameter.
+
+There's also a fifth parameter that allow to modify the acceded authUser _idField_ and _roleField_ to be different as default ones (_'id'_ and _'role'_).
 
 ### Schema
 

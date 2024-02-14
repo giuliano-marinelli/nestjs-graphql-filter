@@ -7,25 +7,52 @@ export class SelectionInput {
     this.selectionSetObject = this.getSelectionSetObject(selections);
   }
 
+  /**
+   * Returns an array of attributes from the selection set.
+   * Relations (ex: sessions.id, sessions.ip) are filtered out.
+   *
+   * @returns {string[]} The array of attributes.
+   */
   getAttributes = (): string[] => {
-    // filter out relations (ex: sessions._id, sessions.ip)
+    // filter out relations (ex: sessions.id, sessions.ip)
     return this.selectionSetArray.filter((field) => !field.includes('.'));
   };
 
+  /**
+   * Returns an array of full attributes.
+   *
+   * @returns {string[]} The array of full attributes.
+   */
   getFullAttributes = (): string[] => {
     return this.selectionSetArray;
   };
 
+  /**
+   * Retrieves the relations from the selection set.
+   * Relations are fields that include a dot (ex: sessions.id => sessions).
+   * @returns An array of relation names.
+   */
   getRelations = (): string[] => {
     // get relations (ex: sessions)
     return this.selectionSetArray.filter((field) => field.includes('.')).map((field) => field.split('.')[0]);
   };
 
-  getTypeORMRelations = (): any => {
+  /**
+   * Retrieves the TypeORM relations present in the selection set.
+   *
+   * @param include - Optional parameter to include specific relations.
+   * @returns An object containing the TypeORM relations as keys, with a value of true.
+   */
+  getTypeORMRelations = (include?: any): any => {
     const relations: any = {};
     this.getRelations().forEach((relation) => {
       relations[relation] = true;
     });
+    if (include) {
+      Object.keys(include).forEach((relation) => {
+        relations[relation] = include[relation];
+      });
+    }
     return relations;
   };
 
