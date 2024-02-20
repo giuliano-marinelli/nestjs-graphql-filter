@@ -63,6 +63,8 @@ export class SelectionInput {
   private getSelectionSetObject = (selections: readonly any[]): any => {
     const fields: any = {};
 
+    if (!selections) return {};
+
     for (const selection of selections) {
       if (selection.kind === 'Field') {
         fields[selection.name.value] = {};
