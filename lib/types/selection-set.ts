@@ -2,9 +2,11 @@ export class SelectionInput {
   private selectionSetArray: string[] = [];
   private selectionSetObject: any = {};
 
-  constructor(selections: readonly any[]) {
-    this.selectionSetArray = this.getSelectionSetArray(selections);
-    this.selectionSetObject = this.getSelectionSetObject(selections);
+  constructor(info: any) {
+    const selections = info?.fieldNodes ? info?.fieldNodes[0]?.selectionSet?.selections : null;
+    const variables = info?.variableValues;
+    this.selectionSetArray = this.getSelectionSetArray(selections, variables);
+    this.selectionSetObject = this.getSelectionSetObject(selections, variables);
   }
 
   /**
@@ -34,7 +36,9 @@ export class SelectionInput {
    */
   getRelations = (): string[] => {
     // get relations (ex: sessions)
-    return this.selectionSetArray.filter((field) => field.includes('.')).map((field) => field.split('.')[0]);
+    return Array.from(
+      new Set(this.selectionSetArray.filter((field) => field.includes('.')).map((field) => field.split('.')[0]))
+    );
   };
 
   /**
@@ -60,18 +64,26 @@ export class SelectionInput {
   // sub selections set are showed as parent: { child: {} }
   // example: user { name, email, sessions { _id, ip } }
   // selectionsSet = { user: { name: {}, email: {}, sessions: { _id: {}, ip: {} } } }
-  private getSelectionSetObject = (selections: readonly any[]): any => {
+  private getSelectionSetObject = (selections: readonly any[], variables: any): any => {
     const fields: any = {};
 
     if (!selections) return {};
 
     for (const selection of selections) {
-      if (selection.kind === 'Field') {
+      const includeDirective = selection.directives?.find((directive) => directive.name.value === 'include');
+      const shouldInclude =
+        (!includeDirective ||
+          includeDirective.arguments.some(
+            (arg) => arg?.name?.value === 'if' && variables && variables[arg?.value?.name?.value]
+          )) &&
+        selection.name.value !== '__typename';
+
+      if (shouldInclude && selection.kind === 'Field') {
         fields[selection.name.value] = {};
       }
 
-      if (selection.selectionSet) {
-        fields[selection.name.value] = this.getSelectionSetObject(selection.selectionSet.selections);
+      if (shouldInclude && selection.selectionSet) {
+        fields[selection.name.value] = this.getSelectionSetObject(selection.selectionSet.selections, variables);
       }
     }
 
@@ -82,16 +94,24 @@ export class SelectionInput {
   // sub selections set are showed as parent.child
   // example: user { name, email, sessions { _id, ip } }
   // selectionsSet = ['name', 'email', 'sessions._id', 'sessions.ip']
-  private getSelectionSetArray = (selections: readonly any[]): string[] => {
+  private getSelectionSetArray = (selections: readonly any[], variables: any): string[] => {
     const fields: string[] = [];
 
     if (!selections) return [];
 
     for (const selection of selections) {
-      if (selection.kind === 'Field') {
+      const includeDirective = selection.directives?.find((directive) => directive.name.value === 'include');
+      const shouldInclude =
+        (!includeDirective ||
+          includeDirective.arguments.some(
+            (arg) => arg?.name?.value === 'if' && variables && variables[arg?.value?.name?.value]
+          )) &&
+        selection.name?.value !== '__typename';
+
+      if (shouldInclude && selection.kind === 'Field') {
         if (selection.selectionSet) {
           fields.push(
-            ...this.getSelectionSetArray(selection.selectionSet.selections).map(
+            ...this.getSelectionSetArray(selection.selectionSet.selections, variables).map(
               (field) => `${selection.name.value}.${field}`
             )
           );
