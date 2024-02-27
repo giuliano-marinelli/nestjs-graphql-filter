@@ -44,6 +44,7 @@ $ npm install @nestjs!/graphql-filter
 
 [Utils](#utils)
 
+- [Many](#many)
 - [SelectionSet](#selectionset)
 - [AuthUser](#authuser)
 - [Owner](#owner)
@@ -285,7 +286,7 @@ export class DeviceOrderInput {}
 
 #### Resolvers
 
-Now in the entities resolvers we can define a _findAll_ method that receives the correspondent filtering, ordering, pagination and selection parameters and apply the pipe transforms for get, in this case, the TypeORM formatted parameters for use with the repository find method. For example for the _Users_ resolver:
+Now in the entities resolvers we can define a _findMany_ method that receives the correspondent filtering, ordering, pagination and selection parameters and apply the pipe transforms for get, in this case, the TypeORM formatted parameters for use with the repository find method. For example for the _Users_ resolver:
 
 `users.resolver.ts`
 
@@ -310,7 +311,7 @@ export class UsersResolver {
   ...
 
   @Query(() => [User], { name: 'users', nullable: 'items' })
-  async findAll(
+  async findMany(
     @Args('where', { type: () => [UserWhereInput], nullable: true }, TypeORMWhereTransform<User>)
     where: FindOptionsWhere<User>,
     @Args('order', { type: () => [UserOrderInput], nullable: true }, TypeORMOrderTransform<User>)
@@ -318,7 +319,7 @@ export class UsersResolver {
     @Args('pagination', { nullable: true }) pagination: PaginationInput,
     @SelectionSet() selection: SelectionInput
   ) {
-    return await this.usersService.findAll( where, order, pagination, selection );
+    return await this.usersService.findMany( where, order, pagination, selection );
   }
 }
 ```
@@ -346,7 +347,7 @@ export class UsersService {
 
   ...
 
-  async findAll(
+  async findMany(
     where: FindOptionsWhere<User>,
     order: FindOptionsOrder<User>,
     pagination: PaginationInput,
@@ -498,6 +499,80 @@ For "order" variable something similar happen, we can define the variable as an 
 
 ### Utils
 
+#### Many
+
+When we want to create a `findMany` query where you want to return the result set aside with the `total count` of elements (which is a pretty common and efficient way of query the data), you have to create a custom ObjectType that allow send the data set along with the count number. Here is where the `@Many` decorator appears to automatize this task:
+
+`session.entity`
+
+```typescript
+@ObjectType()
+// ...
+export class Session {
+  // ...
+}
+
+// ...
+
+@Many(Session)
+export class Sessions {}
+```
+
+This decorated class will generate the next ObjectType in the schema:
+
+```graphql
+type Sessions {
+  sessions: [Session!]
+  count: Int!
+}
+```
+
+Later our resolver can use the `Sessions` class for reference to this type:
+
+`sessions.resolver.ts`
+
+```typescript
+import { Sessions } from './entities/session.entity';
+
+@Resolver(() => Session)
+export class SessionsResolver {
+    //...
+
+    // we use 'Sessions' class as return type
+    @Query(() => Sessions, { name: 'sessions' })
+    async findMany(
+        ...,
+        // remember use the 'root' parameter for make SelectionInput using the set of sessions
+        @SelectionSet({ root: 'sessions' }) selection: SelectionInput
+    ) {
+    return await this.sessionsService.findMany(..., selection);
+    }
+}
+```
+
+And finally the service function will be like this:
+
+`sessions.service.ts`
+
+```typescript
+async findMany(
+    where: FindOptionsWhere<Session>,
+    order: FindOptionsOrder<Session>,
+    pagination: PaginationInput,
+    selection: SelectionInput
+  ) {
+    // we use 'findAndCount' method instead of 'find'
+    const [sessions, count] = await this.sessionsRepository.findAndCount({
+      relations: selection?.getTypeORMRelations(),
+      where: where,
+      order: order,
+      skip: pagination ? (pagination.page - 1) * pagination.count : null,
+      take: pagination ? pagination.count : null
+    });
+    return { sessions, count };
+  }
+```
+
 #### SelectionSet
 
 When using the `@SelectionSet` decorator you will get a `SelectionInput` object which is obtained by processing the GraphQL context info and organized for easily accessing the selection.
@@ -534,6 +609,42 @@ From this object you have the next methods at disposition:
 }
 ```
 
+`options`
+
+You can use the `root` option for define the initial node from where the SelectionInput will be generated. For example:
+
+If you have this query:
+
+```graphql
+query Sessions {
+    sessions {
+        collections {
+            results {
+                id
+                objects {
+                    id
+                    ...
+                }
+                ...
+            }
+        }
+        count
+    }
+}
+```
+
+And you want to receive only the data from `results` for compute the relations, fields, etc of the SelectionInput. You can use this on resolver:
+
+```typescript
+@Query(() => Sessions, { name: 'sessions' })
+async findMany(
+...,
+@SelectionSet({ root: 'collections.results' }) selection: SelectionInput
+) {
+return await this.sessionsService.findMany(..., selection);
+}
+```
+
 #### AuthUser
 
 When using the `@AuthUser` decorator you will get a object which is obtained from the GraphQL context request. You can also send a string parameter with the name you use for store the authenticated user on the request. For example:
@@ -542,13 +653,15 @@ When using the `@AuthUser` decorator you will get a object which is obtained fro
 
 ```typescript
 @Query(() => [Session], { name: 'sessions', nullable: 'items' })
-async findAll(
+async findMany(
   ...,
   @AuthUser('user') authUser: User
 ) {
-  return await this.sessionsService.findAll(..., authUser);
+  return await this.sessionsService.findMany(..., authUser);
 }
 ```
+
+This is pretty much usefull for when use findMany queries where the set of data is returned along the count number.
 
 #### Owner
 
@@ -567,7 +680,7 @@ async findOne(
 }
 
 @Query(() => [Session], { name: 'sessions', nullable: 'items' })
-async findAll(
+async findMany(
   @Args('where', { type: () => [SessionWhereInput], nullable: true }, TypeORMWhereTransform<Session>)
   where: FindOptionsWhere<Session>,
   @Args('order', { type: () => [SessionOrderInput], nullable: true }, TypeORMOrderTransform<Session>)
@@ -576,7 +689,7 @@ async findAll(
   @SelectionSet() selection: SelectionInput,
   @AuthUser() authUser: User
 ) {
-  return await this.sessionsService.findAll(where, order, pagination, selection, authUser);
+  return await this.sessionsService.findMany(where, order, pagination, selection, authUser);
 }
 ```
 
@@ -592,7 +705,7 @@ async findOne(id: string, selection: SelectionInput, authUser: User) {
   });
 }
 
-async findAll(
+async findMany(
   where: FindOptionsWhere<Session>,
   order: FindOptionsOrder<Session>,
   pagination: PaginationInput,

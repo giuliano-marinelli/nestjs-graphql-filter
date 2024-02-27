@@ -1,9 +1,13 @@
+import { SelectionInputOptions } from '../decorators/selection-set.decorator';
+
 export class SelectionInput {
   private selectionSetArray: string[] = [];
   private selectionSetObject: any = {};
 
-  constructor(info: any) {
-    const selections = info?.fieldNodes ? info?.fieldNodes[0]?.selectionSet?.selections : null;
+  constructor(info: any, options?: SelectionInputOptions) {
+    const selections = info?.fieldNodes
+      ? this.getSeletionSetRoot(info?.fieldNodes[0]?.selectionSet?.selections, options?.root)
+      : null;
     const variables = info?.variableValues;
     this.selectionSetArray = this.getSelectionSetArray(selections, variables);
     this.selectionSetObject = this.getSelectionSetObject(selections, variables);
@@ -122,5 +126,18 @@ export class SelectionInput {
     }
 
     return fields;
+  };
+
+  private getSeletionSetRoot = (selections: readonly any[], root: string): any => {
+    if (!selections) return null;
+    if (!root) return selections;
+
+    const rootPath = root.split('.');
+
+    rootPath.forEach((path) => {
+      selections = selections.find((selection) => selection.name.value === path)?.selectionSet?.selections;
+    });
+
+    return selections;
   };
 }

@@ -1,6 +1,6 @@
 {
   "name": "@nestjs!/graphql-filter",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "GraphQL tools for Nest framework that gives a set of decorators and pipe transforms for make filtering, ordering, pagination and selection inputs easily for use with a ORM.",
   "author": "Giuliano Marinelli",
   "license": "MIT",
@@ -11,6 +11,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rimraf dist && tsc",
+    "prepack": "npm run build",
     "prepublish": "npm run build"
   },
   "dependencies": {

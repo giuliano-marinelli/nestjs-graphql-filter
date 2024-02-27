@@ -1,6 +1,7 @@
 import { FilterField } from './decorators/filter-field.decorator';
 import { FilterWhereType } from './decorators/filter-where.decorator';
 import { FilterOrderType } from './decorators/filter-order.decorator';
+import { Many } from './decorators/many.decorator';
 import { SelectionSet } from './decorators/selection-set.decorator';
 import { AuthUser } from './decorators/auth-user.decorator';
 
@@ -22,7 +23,7 @@ import { SelectionInput } from './types/selection-set';
 import { Owner } from './utils/ownership';
 
 // export decorators
-export { FilterField, FilterWhereType, FilterOrderType, SelectionSet, AuthUser };
+export { FilterField, FilterWhereType, FilterOrderType, Many, SelectionSet, AuthUser };
 
 // export inputs
 export {
