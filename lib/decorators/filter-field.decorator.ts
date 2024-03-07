@@ -36,7 +36,7 @@ export function FilterField<T extends ReturnTypeFuncValue>(
         : [undefined, undefined, whereTypeOrOrderTypeOrOptions as any];
 
     // get the type of the property for use if no type is provided
-    const propertyType = Reflect.getMetadata('design:type', target, propertyKey).name;
+    const propertyType = Reflect.getMetadata('design:type', target, propertyKey)?.name;
     if (!whereTypeFunc) {
       switch (propertyType) {
         case 'Number':
