@@ -354,7 +354,7 @@ export class UsersService {
     selection: SelectionInput
   ) {
     return await this.usersRepository.find({
-      relations: selection?.getTypeORMRelations(),
+      relations: selection?.getRelations(),
       where: where,
       order: order,
       skip: pagination ? (pagination.page - 1) * pagination?.count : null,
@@ -563,7 +563,7 @@ async findMany(
   ) {
     // we use 'findAndCount' method instead of 'find'
     const [sessions, count] = await this.sessionsRepository.findAndCount({
-      relations: selection?.getTypeORMRelations(),
+      relations: selection?.getRelations(),
       where: where,
       order: order,
       skip: pagination ? (pagination.page - 1) * pagination.count : null,
@@ -696,7 +696,7 @@ async findMany(
 ```typescript
 async findOne(id: string, selection: SelectionInput, authUser: User) {
   return await this.sessionsRepository.findOne({
-    relations: selection?.getTypeORMRelations(),
+    relations: selection?.getRelations(),
     where: Owner({ id: id }, 'user.id', authUser, [Role.ADMIN])
   });
 }
@@ -709,7 +709,7 @@ async findMany(
   authUser: User
 ) {
   return await this.sessionsRepository.find({
-    relations: selection?.getTypeORMRelations(),
+    relations: selection?.getRelations(),
     where: Owner(where, 'user.id', authUser, [Role.ADMIN]),
     order: order,
     skip: pagination ? (pagination.page - 1) * pagination.count : null,
