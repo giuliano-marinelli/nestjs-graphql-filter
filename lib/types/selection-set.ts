@@ -1,8 +1,11 @@
 import { SelectionInputOptions } from '../decorators/selection-set.decorator';
 
+import _ from 'lodash';
+
 export class SelectionInput {
   private selectionSetArray: string[] = [];
   private selectionSetObject: any = {};
+  private selectionSetRelations: any = {};
 
   constructor(info: any, options?: SelectionInputOptions) {
     const selections = info?.fieldNodes
@@ -11,6 +14,7 @@ export class SelectionInput {
     const variables = info?.variableValues;
     this.selectionSetArray = this.getSelectionSetArray(selections, variables);
     this.selectionSetObject = this.getSelectionSetObject(selections, variables);
+    this.selectionSetRelations = this.getSelectionSetRelations(selections, variables);
   }
 
   /**
@@ -34,40 +38,25 @@ export class SelectionInput {
   };
 
   /**
-   * Retrieves the relations from the selection set.
-   * Relations are fields that include a dot (ex: sessions.id => sessions).
-   * @returns An array of relation names.
-   */
-  getRelations = (): string[] => {
-    // get relations (ex: sessions)
-    return Array.from(
-      new Set(this.selectionSetArray.filter((field) => field.includes('.')).map((field) => field.split('.')[0]))
-    );
-  };
-
-  /**
-   * Retrieves the TypeORM relations present in the selection set.
+   * Retrieves the relations present in the selection set formatted as:
+   *
+   * ```javascript
+   * { relation: { childRelation: true, anotherRelation: { anotherOne: true } } }
+   * ```
+   *
+   * Relations are all the fields that have subfields in the selection set.
    *
    * @param include - Optional parameter to include specific relations.
    * @returns An object containing the TypeORM relations as keys, with a value of true.
    */
-  getTypeORMRelations = (include?: any): any => {
-    const relations: any = {};
-    this.getRelations().forEach((relation) => {
-      relations[relation] = true;
-    });
-    if (include) {
-      Object.keys(include).forEach((relation) => {
-        relations[relation] = include[relation];
-      });
-    }
-    return relations;
+  getRelations = (include?: any): any => {
+    return _.merge({}, this.selectionSetRelations, include);
   };
 
   // convert selections set object to object
   // sub selections set are showed as parent: { child: {} }
-  // example: user { name, email, sessions { _id, ip } }
-  // selectionsSet = { user: { name: {}, email: {}, sessions: { _id: {}, ip: {} } } }
+  // example: user { name, email, sessions { id, ip } }
+  // selectionsSet = { name: {}, email: {}, sessions: { id: {}, ip: {} } }
   private getSelectionSetObject = (selections: readonly any[], variables: any): any => {
     const fields: any = {};
 
@@ -94,10 +83,40 @@ export class SelectionInput {
     return fields;
   };
 
+  // convert selections set object to relations object
+  // sub selections set are showed as parent: { child: true }
+  // example: user { name, email, sessions { id, ip, device: { id } } }
+  // selectionsSet = { sessions: { device: true } }
+  private getSelectionSetRelations = (selections: readonly any[], variables: any): any => {
+    const fields: any = {};
+
+    if (!selections) return {};
+
+    for (const selection of selections) {
+      const includeDirective = selection.directives?.find((directive) => directive.name.value === 'include');
+      const shouldInclude =
+        (!includeDirective ||
+          includeDirective.arguments.some(
+            (arg) => arg?.name?.value === 'if' && variables && variables[arg?.value?.name?.value]
+          )) &&
+        selection.name.value !== '__typename';
+
+      if (shouldInclude && selection.selectionSet?.selections?.length) {
+        fields[selection.name.value] = true;
+        const selectionSetResult = this.getSelectionSetRelations(selection.selectionSet.selections, variables);
+        if (Object.keys(selectionSetResult).length) {
+          fields[selection.name.value] = selectionSetResult;
+        }
+      }
+    }
+
+    return fields;
+  };
+
   // convert selections set object to array of string fields
   // sub selections set are showed as parent.child
-  // example: user { name, email, sessions { _id, ip } }
-  // selectionsSet = ['name', 'email', 'sessions._id', 'sessions.ip']
+  // example: user { name, email, sessions { id, ip } }
+  // selectionsSet = ['name', 'email', 'sessions.id', 'sessions.ip']
   private getSelectionSetArray = (selections: readonly any[], variables: any): string[] => {
     const fields: string[] = [];
 

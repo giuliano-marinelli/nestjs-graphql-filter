@@ -594,13 +594,7 @@ From this object you have the next methods at disposition:
 ]
 ```
 
-`getRelations()`: returns a string array with only the relations names that are selected. For example, for the query of the next section we get:
-
-```json
-["profile", "sessions"]
-```
-
-`getTypeORMRelations(include?)`: returns a object formatted for been used in TypeORM repository find relations parameter. Also some extra relations can be added using include parameter with a valid TypeORM relations object. For example, for the query of the next section we get:
+`getRelations(include?)`: returns a object formatted like TypeORM repository find relations parameter. Also some extra relations can be added using include parameter with a valid TypeORM relations object. For example, for the query of the next section we get:
 
 ```typescript
 {
@@ -608,6 +602,8 @@ From this object you have the next methods at disposition:
     sessions: true
 }
 ```
+
+**Note: it also return nested relations (if there nested subfields).**
 
 `options`
 

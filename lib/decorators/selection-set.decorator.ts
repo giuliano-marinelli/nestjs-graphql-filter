@@ -13,8 +13,7 @@ export type SelectionInputOptions = {
 /**
  * Decorator that extracts the selection set from the GraphQL execution context.
  *
- * @param data - Additional data passed to the decorator (unused in this implementation).
- * @param execContext - The execution context of the GraphQL resolver.
+ * @param data - The options for the SelectionInput decorator. For example: { root: 'set' }
  * @returns A new SelectionInput instance containing the selection set.
  */
 export const SelectionSet = createParamDecorator((data: SelectionInputOptions, execContext: ExecutionContext) => {
