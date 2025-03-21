@@ -26,8 +26,22 @@ The package includes decorators `@FilterField`, `@FilterWhereType` and `@FilterO
 
 ## Installation
 
+Install peer dependencies (if not already installed):
+
+```bash
+$ npm install @nestjs/common @nestjs/core @nestjs/graphql class-validator graphql typeorm
+```
+
+Install the package:
+
 ```bash
 $ npm install @nestjs!/graphql-filter
+```
+
+In case you have an [issue](https://github.com/giuliano-marinelli/nestjs-graphql-filter/issues/1) with (!) character in the package name, you have to add quotes:
+
+```bash
+$ npm install '@nestjs!/graphql-filter'
 ```
 
 ## Usage
