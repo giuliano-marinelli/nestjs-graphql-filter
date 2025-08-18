@@ -6,7 +6,7 @@ import { Min } from 'class-validator';
 @InputType({ description: 'Pagination generic input' })
 export class PaginationInput {
   @Field(() => GraphQLInt, { description: 'The page number' })
-  @Min(1)
+  @Min(0)
   page: number;
 
   @Field(() => GraphQLInt, { description: 'The number of items per page' })

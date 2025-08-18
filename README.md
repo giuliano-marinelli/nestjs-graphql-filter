@@ -371,7 +371,7 @@ export class UsersService {
       relations: selection?.getRelations(),
       where: where,
       order: order,
-      skip: pagination ? (pagination.page - 1) * pagination?.count : null,
+      skip: pagination ? pagination.page * pagination?.count : null,
       take: pagination ? pagination.count : null
     });
   }
@@ -580,7 +580,7 @@ async findMany(
       relations: selection?.getRelations(),
       where: where,
       order: order,
-      skip: pagination ? (pagination.page - 1) * pagination.count : null,
+      skip: pagination ? pagination.page * pagination.count : null,
       take: pagination ? pagination.count : null
     });
     return { sessions, count };
@@ -726,7 +726,7 @@ async findMany(
     relations: selection?.getRelations(),
     where: Owner(where, 'user.id', authUser, [Role.ADMIN]),
     order: order,
-    skip: pagination ? (pagination.page - 1) * pagination.count : null,
+    skip: pagination ? pagination.page * pagination.count : null,
     take: pagination ? pagination.count : null
   });
 }
